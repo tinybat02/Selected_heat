@@ -1,0 +1,24 @@
+{
+  "name": "selected-heatmap",
+  "version": "1.0.0",
+  "description": "Selected Heatmap",
+  "scripts": {
+    "build": "grafana-toolkit plugin:build",
+    "test": "grafana-toolkit plugin:test",
+    "dev": "grafana-toolkit plugin:dev",
+    "watch": "grafana-toolkit plugin:dev --watch"
+  },
+  "author": "Nam Le",
+  "license": "MIT",
+  "devDependencies": {
+    "@grafana/data": "next",
+    "@grafana/toolkit": "next",
+    "@grafana/ui": "next",
+    "@types/ol": "^6.5.0",
+    "tslib": "^2.1.0"
+  },
+  "dependencies": {
+    "nanoid": "^3.1.23",
+    "ol": "^6.5.0"
+  }
+}
