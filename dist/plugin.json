@@ -1,0 +1,21 @@
+{
+  "type": "panel",
+  "name": "Selected Heat",
+  "id": "id-selected-heatmap",
+  "dataFormats": ["table"],
+  "info": {
+    "description": "Selected Heatmap",
+    "author": {
+      "name": "Nam Le"
+    },
+    "keywords": [],
+    "screenshots": [],
+    "version": "1.0.0",
+    "updated": "2021-05-20"
+  },
+
+  "dependencies": {
+    "grafanaVersion": "6.3.x",
+    "plugins": []
+  }
+}
