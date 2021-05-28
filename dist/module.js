@@ -78644,6 +78644,8 @@ function (_super) {
   };
 
   MainPanel.prototype.componentDidUpdate = function (prevProps, prevState) {
+    var _this = this;
+
     if (prevProps.data.series[0] !== this.props.data.series[0]) {
       this.map.removeLayer(this.heatLayer);
 
@@ -78692,9 +78694,23 @@ function (_super) {
 
     if (prevState.current !== this.state.current) {
       this.map.removeLayer(this.heatLayer);
+      this.map.removeLayer(this.deviceLayer);
       if (this.state.current == 'None') return;
       this.heatLayer = Object(_util_helper__WEBPACK_IMPORTED_MODULE_9__["createHeatLayer"])(this.perDeviceRoute[this.state.current]);
       this.map.addLayer(this.heatLayer);
+      if (!this.props.options.geojson) return;
+      var device_local = this.props.options.geojson.features.find(function (point) {
+        var _a;
+
+        var id = (_a = point.properties) === null || _a === void 0 ? void 0 : _a.id;
+        return id.replace(':', '').toLowerCase() == _this.state.current;
+      });
+
+      if (device_local) {
+        //@ts-ignore
+        this.deviceLayer = Object(_util_helper__WEBPACK_IMPORTED_MODULE_9__["createPointLayer"])(device_local.geometry.coordinates, this.state.current);
+        this.map.addLayer(this.deviceLayer);
+      }
     }
   };
 
@@ -78779,7 +78795,8 @@ var defaults = {
   center_lat: 48.262725,
   center_lon: 11.66725,
   tile_url: '',
-  zoom_level: 18
+  zoom_level: 18,
+  geojson: null
 };
 
 /***/ }),
@@ -78788,17 +78805,22 @@ var defaults = {
 /*!************************!*\
   !*** ./util/helper.ts ***!
   \************************/
-/*! exports provided: processData, createHeatLayer */
+/*! exports provided: processData, createHeatLayer, createPointLayer */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "processData", function() { return processData; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "createHeatLayer", function() { return createHeatLayer; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "createPointLayer", function() { return createPointLayer; });
 /* harmony import */ var ol_Feature__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ol/Feature */ "../node_modules/ol/Feature.js");
 /* harmony import */ var ol_geom_Point__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ol/geom/Point */ "../node_modules/ol/geom/Point.js");
 /* harmony import */ var ol_source_Vector__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ol/source/Vector */ "../node_modules/ol/source/Vector.js");
-/* harmony import */ var ol_layer_Heatmap__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ol/layer/Heatmap */ "../node_modules/ol/layer/Heatmap.js");
+/* harmony import */ var ol_layer_Vector__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ol/layer/Vector */ "../node_modules/ol/layer/Vector.js");
+/* harmony import */ var ol_layer_Heatmap__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ol/layer/Heatmap */ "../node_modules/ol/layer/Heatmap.js");
+/* harmony import */ var ol_style__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ol/style */ "../node_modules/ol/style.js");
+
+
 
 
 
@@ -78821,7 +78843,7 @@ var createHeatLayer = function createHeatLayer(data) {
   var features = data.map(function (point) {
     return new ol_Feature__WEBPACK_IMPORTED_MODULE_0__["default"](new ol_geom_Point__WEBPACK_IMPORTED_MODULE_1__["default"](point).transform('EPSG:4326', 'EPSG:3857'));
   });
-  return new ol_layer_Heatmap__WEBPACK_IMPORTED_MODULE_3__["default"]({
+  return new ol_layer_Heatmap__WEBPACK_IMPORTED_MODULE_4__["default"]({
     source: new ol_source_Vector__WEBPACK_IMPORTED_MODULE_2__["default"]({
       features: features
     }),
@@ -78829,6 +78851,36 @@ var createHeatLayer = function createHeatLayer(data) {
     radius: 5,
     opacity: 0.9,
     zIndex: 2
+  });
+};
+var createPointLayer = function createPointLayer(latlon, label) {
+  var pointFeature = new ol_Feature__WEBPACK_IMPORTED_MODULE_0__["default"](new ol_geom_Point__WEBPACK_IMPORTED_MODULE_1__["default"](latlon).transform('EPSG:4326', 'EPSG:3857'));
+  return new ol_layer_Vector__WEBPACK_IMPORTED_MODULE_3__["default"]({
+    source: new ol_source_Vector__WEBPACK_IMPORTED_MODULE_2__["default"]({
+      features: [pointFeature]
+    }),
+    style: new ol_style__WEBPACK_IMPORTED_MODULE_5__["Style"]({
+      image: new ol_style__WEBPACK_IMPORTED_MODULE_5__["Circle"]({
+        radius: 5,
+        fill: new ol_style__WEBPACK_IMPORTED_MODULE_5__["Fill"]({
+          color: 'rgba(255, 255, 255, 0.7)'
+        }),
+        stroke: new ol_style__WEBPACK_IMPORTED_MODULE_5__["Stroke"]({
+          color: '#00b2ae',
+          width: 2
+        })
+      }),
+      text: new ol_style__WEBPACK_IMPORTED_MODULE_5__["Text"]({
+        stroke: new ol_style__WEBPACK_IMPORTED_MODULE_5__["Stroke"]({
+          color: '#fff',
+          width: 2
+        }),
+        font: '14px Calibri,sans-serif',
+        text: label,
+        offsetY: -12
+      })
+    }),
+    zIndex: 3
   });
 };
 

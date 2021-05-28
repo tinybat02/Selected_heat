@@ -9,8 +9,9 @@ import { defaults, DragPan, MouseWheelZoom } from 'ol/interaction';
 import { platformModifierKeyOnly } from 'ol/events/condition';
 import Heatmap from 'ol/layer/Heatmap';
 import { nanoid } from 'nanoid';
-import { processData, createHeatLayer } from './util/helper';
+import { processData, createHeatLayer, createPointLayer } from './util/helper';
 import 'ol/ol.css';
+import VectorLayer from 'ol/layer/Vector';
 
 interface Props extends PanelProps<PanelOptions> {}
 interface State {
@@ -23,6 +24,7 @@ export class MainPanel extends PureComponent<Props, State> {
   map: Map;
   randomTile: TileLayer;
   heatLayer: Heatmap;
+  deviceLayer: VectorLayer;
   perDeviceRoute: { [key: string]: [number, number][] } = {};
 
   state: State = {
@@ -124,10 +126,24 @@ export class MainPanel extends PureComponent<Props, State> {
 
     if (prevState.current !== this.state.current) {
       this.map.removeLayer(this.heatLayer);
+      this.map.removeLayer(this.deviceLayer);
       if (this.state.current == 'None') return;
 
       this.heatLayer = createHeatLayer(this.perDeviceRoute[this.state.current]);
       this.map.addLayer(this.heatLayer);
+
+      if (!this.props.options.geojson) return;
+
+      const device_local = this.props.options.geojson.features.find(point => {
+        const id = point.properties?.id as string;
+        return id.replace(':', '').toLowerCase() == this.state.current;
+      });
+
+      if (device_local) {
+        //@ts-ignore
+        this.deviceLayer = createPointLayer(device_local.geometry.coordinates, this.state.current);
+        this.map.addLayer(this.deviceLayer);
+      }
     }
   }
 

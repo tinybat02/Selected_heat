@@ -1,10 +1,12 @@
 import { DataFrame, Field, Vector } from '@grafana/data';
+import { GeoJSONFeatureCollection } from 'ol/format/GeoJSON';
 
 export interface PanelOptions {
   center_lat: number;
   center_lon: number;
   tile_url: string;
   zoom_level: number;
+  geojson: GeoJSONFeatureCollection | null;
 }
 
 export const defaults: PanelOptions = {
@@ -12,6 +14,7 @@ export const defaults: PanelOptions = {
   center_lon: 11.66725,
   tile_url: '',
   zoom_level: 18,
+  geojson: null,
 };
 
 export interface Buffer extends Vector {
