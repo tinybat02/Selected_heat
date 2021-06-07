@@ -9,7 +9,7 @@ import { defaults, DragPan, MouseWheelZoom } from 'ol/interaction';
 import { platformModifierKeyOnly } from 'ol/events/condition';
 import Heatmap from 'ol/layer/Heatmap';
 import { nanoid } from 'nanoid';
-import { processData, createHeatLayer, createPointLayer } from './util/helper';
+import { processData, createHeatLayer, create_dev_diff } from './util/helper';
 import 'ol/ol.css';
 import VectorLayer from 'ol/layer/Vector';
 
@@ -25,7 +25,14 @@ export class MainPanel extends PureComponent<Props, State> {
   randomTile: TileLayer;
   heatLayer: Heatmap;
   deviceLayer: VectorLayer;
-  perDeviceRoute: { [key: string]: [number, number][] } = {};
+  perDevice: {
+    [key: string]: {
+      point1: [number, number];
+      point2: [number, number];
+      heat_coord: [number, number][];
+      distance: number;
+    };
+  } = {};
 
   state: State = {
     options: [],
@@ -71,30 +78,35 @@ export class MainPanel extends PureComponent<Props, State> {
 
     if (this.props.data.series.length > 0) {
       const { buffer } = this.props.data.series[0].fields[0].values as Buffer;
-      const { perDeviceRoute } = processData(buffer);
-      this.perDeviceRoute = perDeviceRoute;
-      this.setState({ options: Object.keys(perDeviceRoute) });
+      const { perDevice } = processData(buffer);
+      this.perDevice = perDevice;
+      this.setState({ options: Object.keys(perDevice) });
     }
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
     if (prevProps.data.series[0] !== this.props.data.series[0]) {
       this.map.removeLayer(this.heatLayer);
+      this.map.removeLayer(this.deviceLayer);
 
       if (this.props.data.series.length == 0) {
         this.setState({ options: [], current: 'None' });
-        this.perDeviceRoute = {};
+        this.perDevice = {};
         return;
       }
 
       const { buffer } = this.props.data.series[0].fields[0].values as Buffer;
-      const { perDeviceRoute } = processData(buffer);
-      this.perDeviceRoute = perDeviceRoute;
-      this.setState({ options: Object.keys(perDeviceRoute) });
+      const { perDevice } = processData(buffer);
+      this.perDevice = perDevice;
+      this.setState({ options: Object.keys(perDevice) });
+
       const { current } = this.state;
-      if (current != 'None' && perDeviceRoute[current]) {
-        this.heatLayer = createHeatLayer(perDeviceRoute[current]);
+      if (current != 'None' && perDevice[current]) {
+        this.heatLayer = createHeatLayer(perDevice[current].heat_coord);
         this.map.addLayer(this.heatLayer);
+
+        this.deviceLayer = create_dev_diff(perDevice[current], current);
+        this.map.addLayer(this.deviceLayer);
       }
     }
 
@@ -129,21 +141,24 @@ export class MainPanel extends PureComponent<Props, State> {
       this.map.removeLayer(this.deviceLayer);
       if (this.state.current == 'None') return;
 
-      this.heatLayer = createHeatLayer(this.perDeviceRoute[this.state.current]);
+      this.heatLayer = createHeatLayer(this.perDevice[this.state.current].heat_coord);
       this.map.addLayer(this.heatLayer);
 
-      if (!this.props.options.geojson) return;
+      this.deviceLayer = create_dev_diff(this.perDevice[this.state.current], this.state.current);
+      this.map.addLayer(this.deviceLayer);
 
-      const device_local = this.props.options.geojson.features.find(point => {
-        const id = point.properties?.id as string;
-        return id.replace(':', '').toLowerCase() == this.state.current;
-      });
+      // if (!this.props.options.geojson) return;
 
-      if (device_local) {
-        //@ts-ignore
-        this.deviceLayer = createPointLayer(device_local.geometry.coordinates, this.state.current);
-        this.map.addLayer(this.deviceLayer);
-      }
+      // const device_local = this.props.options.geojson.features.find(point => {
+      //   const id = point.properties?.id as string;
+      //   return id.replace(':', '').toLowerCase() == this.state.current;
+      // });
+
+      // if (device_local) {
+      //   //@ts-ignore
+      //   this.deviceLayer = createPointLayer(device_local.geometry.coordinates, this.state.current);
+      //   this.map.addLayer(this.deviceLayer);
+      // }
     }
   }
 

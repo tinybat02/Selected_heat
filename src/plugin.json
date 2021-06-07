@@ -9,6 +9,10 @@
       "name": "Nam Le"
     },
     "keywords": [],
+    "logos": {
+      "small": "img/pic.svg",
+      "large": "img/pic.svg"
+    },
     "screenshots": [],
     "version": "%VERSION%",
     "updated": "%TODAY%"

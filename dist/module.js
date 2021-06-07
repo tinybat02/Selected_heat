@@ -78577,7 +78577,7 @@ function (_super) {
     var _this = _super !== null && _super.apply(this, arguments) || this;
 
     _this.id = 'id' + Object(nanoid__WEBPACK_IMPORTED_MODULE_8__["nanoid"])();
-    _this.perDeviceRoute = {};
+    _this.perDevice = {};
     _this.state = {
       options: [],
       current: 'None'
@@ -78635,40 +78635,41 @@ function (_super) {
 
     if (this.props.data.series.length > 0) {
       var buffer = this.props.data.series[0].fields[0].values.buffer;
-      var perDeviceRoute = Object(_util_helper__WEBPACK_IMPORTED_MODULE_9__["processData"])(buffer).perDeviceRoute;
-      this.perDeviceRoute = perDeviceRoute;
+      var perDevice = Object(_util_helper__WEBPACK_IMPORTED_MODULE_9__["processData"])(buffer).perDevice;
+      this.perDevice = perDevice;
       this.setState({
-        options: Object.keys(perDeviceRoute)
+        options: Object.keys(perDevice)
       });
     }
   };
 
   MainPanel.prototype.componentDidUpdate = function (prevProps, prevState) {
-    var _this = this;
-
     if (prevProps.data.series[0] !== this.props.data.series[0]) {
       this.map.removeLayer(this.heatLayer);
+      this.map.removeLayer(this.deviceLayer);
 
       if (this.props.data.series.length == 0) {
         this.setState({
           options: [],
           current: 'None'
         });
-        this.perDeviceRoute = {};
+        this.perDevice = {};
         return;
       }
 
       var buffer = this.props.data.series[0].fields[0].values.buffer;
-      var perDeviceRoute = Object(_util_helper__WEBPACK_IMPORTED_MODULE_9__["processData"])(buffer).perDeviceRoute;
-      this.perDeviceRoute = perDeviceRoute;
+      var perDevice = Object(_util_helper__WEBPACK_IMPORTED_MODULE_9__["processData"])(buffer).perDevice;
+      this.perDevice = perDevice;
       this.setState({
-        options: Object.keys(perDeviceRoute)
+        options: Object.keys(perDevice)
       });
       var current = this.state.current;
 
-      if (current != 'None' && perDeviceRoute[current]) {
-        this.heatLayer = Object(_util_helper__WEBPACK_IMPORTED_MODULE_9__["createHeatLayer"])(perDeviceRoute[current]);
+      if (current != 'None' && perDevice[current]) {
+        this.heatLayer = Object(_util_helper__WEBPACK_IMPORTED_MODULE_9__["createHeatLayer"])(perDevice[current].heat_coord);
         this.map.addLayer(this.heatLayer);
+        this.deviceLayer = Object(_util_helper__WEBPACK_IMPORTED_MODULE_9__["create_dev_diff"])(perDevice[current], current);
+        this.map.addLayer(this.deviceLayer);
       }
     }
 
@@ -78696,21 +78697,19 @@ function (_super) {
       this.map.removeLayer(this.heatLayer);
       this.map.removeLayer(this.deviceLayer);
       if (this.state.current == 'None') return;
-      this.heatLayer = Object(_util_helper__WEBPACK_IMPORTED_MODULE_9__["createHeatLayer"])(this.perDeviceRoute[this.state.current]);
+      this.heatLayer = Object(_util_helper__WEBPACK_IMPORTED_MODULE_9__["createHeatLayer"])(this.perDevice[this.state.current].heat_coord);
       this.map.addLayer(this.heatLayer);
-      if (!this.props.options.geojson) return;
-      var device_local = this.props.options.geojson.features.find(function (point) {
-        var _a;
-
-        var id = (_a = point.properties) === null || _a === void 0 ? void 0 : _a.id;
-        return id.replace(':', '').toLowerCase() == _this.state.current;
-      });
-
-      if (device_local) {
-        //@ts-ignore
-        this.deviceLayer = Object(_util_helper__WEBPACK_IMPORTED_MODULE_9__["createPointLayer"])(device_local.geometry.coordinates, this.state.current);
-        this.map.addLayer(this.deviceLayer);
-      }
+      this.deviceLayer = Object(_util_helper__WEBPACK_IMPORTED_MODULE_9__["create_dev_diff"])(this.perDevice[this.state.current], this.state.current);
+      this.map.addLayer(this.deviceLayer); // if (!this.props.options.geojson) return;
+      // const device_local = this.props.options.geojson.features.find(point => {
+      //   const id = point.properties?.id as string;
+      //   return id.replace(':', '').toLowerCase() == this.state.current;
+      // });
+      // if (device_local) {
+      //   //@ts-ignore
+      //   this.deviceLayer = createPointLayer(device_local.geometry.coordinates, this.state.current);
+      //   this.map.addLayer(this.deviceLayer);
+      // }
     }
   };
 
@@ -78795,8 +78794,7 @@ var defaults = {
   center_lat: 48.262725,
   center_lon: 11.66725,
   tile_url: '',
-  zoom_level: 18,
-  geojson: null
+  zoom_level: 18
 };
 
 /***/ }),
@@ -78805,20 +78803,24 @@ var defaults = {
 /*!************************!*\
   !*** ./util/helper.ts ***!
   \************************/
-/*! exports provided: processData, createHeatLayer, createPointLayer */
+/*! exports provided: processData, createHeatLayer, createPoint, createLine, create_dev_diff */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "processData", function() { return processData; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "createHeatLayer", function() { return createHeatLayer; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "createPointLayer", function() { return createPointLayer; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "createPoint", function() { return createPoint; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "createLine", function() { return createLine; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "create_dev_diff", function() { return create_dev_diff; });
 /* harmony import */ var ol_Feature__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ol/Feature */ "../node_modules/ol/Feature.js");
 /* harmony import */ var ol_geom_Point__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ol/geom/Point */ "../node_modules/ol/geom/Point.js");
-/* harmony import */ var ol_source_Vector__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ol/source/Vector */ "../node_modules/ol/source/Vector.js");
-/* harmony import */ var ol_layer_Vector__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ol/layer/Vector */ "../node_modules/ol/layer/Vector.js");
-/* harmony import */ var ol_layer_Heatmap__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ol/layer/Heatmap */ "../node_modules/ol/layer/Heatmap.js");
-/* harmony import */ var ol_style__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ol/style */ "../node_modules/ol/style.js");
+/* harmony import */ var ol_geom_LineString__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ol/geom/LineString */ "../node_modules/ol/geom/LineString.js");
+/* harmony import */ var ol_source_Vector__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ol/source/Vector */ "../node_modules/ol/source/Vector.js");
+/* harmony import */ var ol_layer_Vector__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ol/layer/Vector */ "../node_modules/ol/layer/Vector.js");
+/* harmony import */ var ol_layer_Heatmap__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ol/layer/Heatmap */ "../node_modules/ol/layer/Heatmap.js");
+/* harmony import */ var ol_style__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ol/style */ "../node_modules/ol/style.js");
+
 
 
 
@@ -78826,25 +78828,29 @@ __webpack_require__.r(__webpack_exports__);
 
 
 var processData = function processData(data) {
-  data.reverse();
-  var perDeviceRoute = {};
+  // data.reverse();
+  console.log('data ', data);
+  var perDevice = {};
   data.map(function (datum) {
-    if (perDeviceRoute[datum.hash_id]) {
-      perDeviceRoute[datum.hash_id].push([datum.longitude, datum.latitude]);
-    } else {
-      perDeviceRoute[datum.hash_id] = [[datum.longitude, datum.latitude]];
+    if (!perDevice[datum.device_id]) {
+      perDevice[datum.device_id] = {
+        point1: [datum.longitude_original, datum.latitude_original],
+        point2: [datum.longitude_calculated, datum.latitude_calculated],
+        heat_coord: datum.heatmap_coordinates,
+        distance: datum.distance
+      };
     }
   });
   return {
-    perDeviceRoute: perDeviceRoute
+    perDevice: perDevice
   };
 };
 var createHeatLayer = function createHeatLayer(data) {
   var features = data.map(function (point) {
     return new ol_Feature__WEBPACK_IMPORTED_MODULE_0__["default"](new ol_geom_Point__WEBPACK_IMPORTED_MODULE_1__["default"](point).transform('EPSG:4326', 'EPSG:3857'));
   });
-  return new ol_layer_Heatmap__WEBPACK_IMPORTED_MODULE_4__["default"]({
-    source: new ol_source_Vector__WEBPACK_IMPORTED_MODULE_2__["default"]({
+  return new ol_layer_Heatmap__WEBPACK_IMPORTED_MODULE_5__["default"]({
+    source: new ol_source_Vector__WEBPACK_IMPORTED_MODULE_3__["default"]({
       features: features
     }),
     blur: 15,
@@ -78853,32 +78859,47 @@ var createHeatLayer = function createHeatLayer(data) {
     zIndex: 2
   });
 };
-var createPointLayer = function createPointLayer(latlon, label) {
-  var pointFeature = new ol_Feature__WEBPACK_IMPORTED_MODULE_0__["default"](new ol_geom_Point__WEBPACK_IMPORTED_MODULE_1__["default"](latlon).transform('EPSG:4326', 'EPSG:3857'));
-  return new ol_layer_Vector__WEBPACK_IMPORTED_MODULE_3__["default"]({
-    source: new ol_source_Vector__WEBPACK_IMPORTED_MODULE_2__["default"]({
-      features: [pointFeature]
-    }),
-    style: new ol_style__WEBPACK_IMPORTED_MODULE_5__["Style"]({
-      image: new ol_style__WEBPACK_IMPORTED_MODULE_5__["Circle"]({
-        radius: 5,
-        fill: new ol_style__WEBPACK_IMPORTED_MODULE_5__["Fill"]({
-          color: 'rgba(255, 255, 255, 0.7)'
-        }),
-        stroke: new ol_style__WEBPACK_IMPORTED_MODULE_5__["Stroke"]({
-          color: '#00b2ae',
-          width: 2
-        })
+var createPoint = function createPoint(coord, color) {
+  var pointFeature = new ol_Feature__WEBPACK_IMPORTED_MODULE_0__["default"](new ol_geom_Point__WEBPACK_IMPORTED_MODULE_1__["default"](coord).transform('EPSG:4326', 'EPSG:3857'));
+  pointFeature.setStyle(new ol_style__WEBPACK_IMPORTED_MODULE_6__["Style"]({
+    image: new ol_style__WEBPACK_IMPORTED_MODULE_6__["Circle"]({
+      radius: 5,
+      fill: new ol_style__WEBPACK_IMPORTED_MODULE_6__["Fill"]({
+        color: 'rgba(255, 255, 255, 0.7)'
       }),
-      text: new ol_style__WEBPACK_IMPORTED_MODULE_5__["Text"]({
-        stroke: new ol_style__WEBPACK_IMPORTED_MODULE_5__["Stroke"]({
-          color: '#fff',
-          width: 2
-        }),
-        font: '14px Calibri,sans-serif',
-        text: label,
-        offsetY: -12
+      stroke: new ol_style__WEBPACK_IMPORTED_MODULE_6__["Stroke"]({
+        color: color,
+        width: 2
       })
+    })
+  }));
+  return pointFeature;
+};
+var createLine = function createLine(p1, p2, label) {
+  var lineFeature = new ol_Feature__WEBPACK_IMPORTED_MODULE_0__["default"](new ol_geom_LineString__WEBPACK_IMPORTED_MODULE_2__["default"]([p1, p2]).transform('EPSG:4326', 'EPSG:3857'));
+  lineFeature.setStyle([new ol_style__WEBPACK_IMPORTED_MODULE_6__["Style"]({
+    stroke: new ol_style__WEBPACK_IMPORTED_MODULE_6__["Stroke"]({
+      color: '#0ba1fd',
+      width: 2
+    }),
+    text: new ol_style__WEBPACK_IMPORTED_MODULE_6__["Text"]({
+      stroke: new ol_style__WEBPACK_IMPORTED_MODULE_6__["Stroke"]({
+        color: '#444',
+        width: 1
+      }),
+      font: '18px Calibri,sans-serif',
+      text: label
+    })
+  })]);
+  return lineFeature;
+};
+var create_dev_diff = function create_dev_diff(data, device) {
+  var p1 = createPoint(data.point1, '#fd540b');
+  var p2 = createPoint(data.point2, '#0ba1fd');
+  var line = createLine(data.point1, data.point2, device + " - " + data.distance.toFixed(2) + " m");
+  return new ol_layer_Vector__WEBPACK_IMPORTED_MODULE_4__["default"]({
+    source: new ol_source_Vector__WEBPACK_IMPORTED_MODULE_3__["default"]({
+      features: [p1, p2, line]
     }),
     zIndex: 3
   });
