@@ -78828,7 +78828,6 @@ __webpack_require__.r(__webpack_exports__);
 
 
 var processData = function processData(data) {
-  // data.reverse();
   var perDevice = {};
   data.map(function (datum) {
     if (!perDevice[datum.device_id]) {

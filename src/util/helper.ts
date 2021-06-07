@@ -19,8 +19,6 @@ interface Record {
 }
 
 export const processData = (data: Record[]) => {
-  // data.reverse();
-
   const perDevice: {
     [key: string]: {
       point1: [number, number];
